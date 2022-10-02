@@ -10,9 +10,9 @@
 <head>
     <title>Manager</title>
     <h1><%= new java.text.SimpleDateFormat("dd-MM-yyyy hh:mm:ss").format(new java.util.Date()) %></h1>
-<%--    <form method="post">--%>
-<%--        <input type="submit" value="Up"/>--%>
-<%--    </form>--%>
+        <form method="post">
+            <input type="submit" value="Back"/>
+        </form>
     <h1> ${currentPath}</h1>
     <h2>Files</h2>
     <form>${files}</form>

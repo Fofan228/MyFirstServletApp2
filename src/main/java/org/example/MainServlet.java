@@ -1,14 +1,13 @@
 package org.example;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.util.Arrays;
 
 @WebServlet("/")
 public class MainServlet extends HttpServlet {
@@ -18,23 +17,54 @@ public class MainServlet extends HttpServlet {
         String currentPath = req.getParameter("path");
         if (currentPath == null || !currentPath.startsWith("C:")) {
             currentPath = System.getProperty("os.name").toLowerCase().startsWith("win") ? "C:" : "/opt/tomcat/";
+            resp.sendRedirect("?path=" + currentPath);
         }
-        File file = new File(currentPath);
-        if (file.isFile()) {
-            resp.setContentType("text/plain");
-            resp.setHeader("Content-disposition", "attachment; filename=" + currentPath);
-            try (InputStream in = req.getServletContext().getResourceAsStream(req.getParameter("path"));
-                 OutputStream out = resp.getOutputStream()) {
-                byte[] buffer = new byte[1048];
-                int numBytesRead;
-                while ((numBytesRead = in.read(buffer)) > 0) {
-                    out.write(buffer, 0, numBytesRead);
+        else {
+            File file = new File(currentPath);
+            if (file.isFile()) {
+
+                String filePath = currentPath;
+                File downloadFile = new File(filePath);
+                FileInputStream inStream = new FileInputStream(downloadFile);
+
+                // obtains ServletContext
+                ServletContext context = getServletContext();
+
+                // gets MIME type of the file
+                String mimeType = context.getMimeType(filePath);
+                if (mimeType == null) {
+                    // set to binary type if MIME mapping not found
+                    mimeType = "application/octet-stream";
                 }
+
+                // modifies response
+                resp.setContentType(mimeType);
+                resp.setContentLength((int) downloadFile.length());
+
+                // forces download
+                String headerKey = "Content-Disposition";
+                String headerValue = String.format("attachment; filename=\"%s\"", downloadFile.getName());
+                resp.setHeader(headerKey, headerValue);
+
+                // obtains response's output stream
+                OutputStream outStream = resp.getOutputStream();
+
+                byte[] buffer = new byte[4096];
+                int bytesRead = -1;
+
+                while ((bytesRead = inStream.read(buffer)) != -1) {
+                    outStream.write(buffer, 0, bytesRead);
+                }
+
+                inStream.close();
+                outStream.close();
+
             }
+            showFiles(req, new File(currentPath).listFiles(), currentPath);
+            req.setAttribute("currentPath", currentPath);
+            req.getRequestDispatcher("FileManager.jsp").forward(req, resp);
         }
-        showFiles(req, new File(currentPath).listFiles(), currentPath);
-        req.setAttribute("currentPath", currentPath);
-        req.getRequestDispatcher("FileManager.jsp").forward(req, resp);
+
     }
 
     private void showFiles(HttpServletRequest req, File[] files, String currentPath) {
@@ -57,18 +87,12 @@ public class MainServlet extends HttpServlet {
         req.setAttribute("files", attrFiles);
     }
 
-//    @Override
-//    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-//        String previousPath = req.getContextPath();
-//        String newStr = new StringBuilder(previousPath).reverse().toString();
-//        int k = 0;
-//        for (int i = 0; i < newStr.length(); i++) {
-//            if (newStr.toCharArray()[i] == '\\') {
-//                k = i;
-//                break;
-//            }
-//        }
-//        String returnStr = newStr.substring(k);
-//        resp.sendRedirect(new StringBuilder(returnStr).reverse().toString());
-//    }
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String previousPath = req.getQueryString();
+        String[] splintedPath = previousPath.split("/");
+        String[] newPathArr = Arrays.copyOf(splintedPath, splintedPath.length - 1);
+        String newPath = String.join("/", newPathArr);
+        resp.sendRedirect("?" + newPath);
+    }
 }
