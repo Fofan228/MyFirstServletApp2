@@ -1,4 +1,4 @@
-<%--
+<%@ page import="java.util.Locale" %><%--
   Created by IntelliJ IDEA.
   User: ivane
   Date: 02.10.2022
@@ -8,11 +8,11 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
-    <title>Manager</title>
-    <h1><%= new java.text.SimpleDateFormat("dd-MM-yyyy hh:mm:ss").format(new java.util.Date()) %></h1>
-        <form method="post">
-            <input type="submit" value="Back"/>
-        </form>
+    <title>File manager</title>
+    <h1> ${currentTime}</h1>
+    <form method="post">
+        <input type="submit" name="exitBtn" value="Exit" />
+    </form>
     <h1> ${currentPath}</h1>
     <h2>Files</h2>
     <form>${files}</form>
