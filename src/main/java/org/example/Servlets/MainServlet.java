@@ -123,6 +123,8 @@ public class MainServlet extends HttpServlet {
             }
             UserCookies.addCookie(resp, "JSESSIONID", null);
             resp.sendRedirect("/main");
+
+             String s = "123";
         }
     }
 }
