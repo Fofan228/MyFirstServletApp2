@@ -10,12 +10,18 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.sql.SQLException;
 
 @WebServlet("/auth")
 public class AuthServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        UserProfile user = UserService.USER_SERVICE.getUserByCookies(req.getCookies());
+        UserProfile user;
+        try {
+            user = UserService.USER_SERVICE.getUserByCookies(req.getCookies());
+        } catch (SQLException | ClassNotFoundException e ) {
+            throw new RuntimeException(e);
+        }
         if (user != null) {
             resp.sendRedirect("/main");
             return;
@@ -25,21 +31,24 @@ public class AuthServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         String login = req.getParameter("login");
         String password = req.getParameter("password");
 
         if (login == null || password == null) {
             return;
         }
+        try {
+            UserProfile user = UserService.USER_SERVICE.getUser("login", login);
+            if (user == null || !user.getPassword().equals(password)) {
+                resp.sendRedirect("/auth");
+                return;
+            }
 
-        UserProfile user = UserService.USER_SERVICE.getUserByLogin(login);
-        if (user == null || !user.getPassword().equals(password)) {
-            resp.sendRedirect("/auth");
-            return;
+            UserService.USER_SERVICE.addUserBySession(UserCookies.getValue(req.getCookies(), "JSESSIONID"), user);
+            resp.sendRedirect("/main");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-
-        UserService.USER_SERVICE.addUserBySession(UserCookies.getValue(req.getCookies(), "JSESSIONID"), user);
-        resp.sendRedirect("/main");
     }
 }
